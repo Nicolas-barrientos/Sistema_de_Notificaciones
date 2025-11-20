@@ -12,7 +12,7 @@ Las notificaciones se muestran en tiempo real en el dashboard de cada usuario us
 
 ```bash
 # Clonar el repositorio
-git clone https://tu-repositorio.git
+git clone https://github.com/Nicolas-barrientos/Sistema_de_Notificaciones-.git
 
 # Entrar a la carpeta del proyecto
 cd ejemplo-notificaciones
