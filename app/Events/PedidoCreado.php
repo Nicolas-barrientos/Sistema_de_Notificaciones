@@ -15,22 +15,29 @@ class PedidoCreado implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $pedido;
-    public $userId;
+    public $creadorId; // ID del usuario que CREÓ el pedido
+    public $receptorId; // ID del usuario que RECIBE la notificación
 
-    public function __construct($pedido, $userId)
+    public function __construct($pedido, $creadorId, $receptorId)
     {
         $this->pedido = $pedido;
-        $this->userId = $userId;
+        $this->creadorId = $creadorId;
+        $this->receptorId = $receptorId;
         
-        Log::info('🔥 Evento PedidoCreado creado', [
+        Log::info('🔥 Evento PedidoCreado construido', [
             'pedido' => $pedido,
-            'userId' => $userId
+            'creadorId' => $creadorId,
+            'receptorId' => $receptorId
         ]);
     }
 
     public function broadcastOn()
     {
-        Log::info('📡 Broadcasting en canal: user.' . $this->userId);
-        return new PrivateChannel('user.' . $this->userId);
+        Log::info('📡 Broadcasting en canal: user.' . $this->receptorId, [
+            'canal' => 'user.' . $this->receptorId,
+            'creador' => $this->creadorId,
+            'receptor' => $this->receptorId
+        ]);
+        return new PrivateChannel('user.' . $this->receptorId);
     }
 }

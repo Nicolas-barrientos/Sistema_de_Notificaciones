@@ -30,13 +30,60 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const userId = userIdMeta.getAttribute('content');
+    const userId = parseInt(userIdMeta.getAttribute('content'));
 
     // Contador de notificaciones
     let contadorNotificaciones = 0;
 
-    // Función para mostrar notificación en pantalla CON ANIMACIÓN
-    function mostrarNotificacion(pedido) {
+    // 🎯 FUNCIÓN PARA MOSTRAR CONFIRMACIÓN AL CREADOR
+    function mostrarConfirmacionCreador(pedido) {
+        const div = document.createElement("div");
+        div.classList.add(
+            'notification-item',
+            'p-4', 
+            'bg-gradient-to-r', 
+            'from-green-50', 
+            'to-emerald-100', 
+            'border-l-4', 
+            'border-green-500', 
+            'rounded-lg', 
+            'shadow-lg',
+            'mb-3',
+            'transform',
+            'transition-all',
+            'duration-500'
+        );
+        
+        // Inicialmente invisible y desplazado
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(-100%) scale(0.8)';
+        
+        div.innerHTML = `
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-bold text-green-900">
+                        ✅ Pedido Creado Exitosamente
+                    </p>
+                    <p class="text-sm text-green-700 mt-1">
+                        Tu pedido #${pedido.id} ha sido registrado
+                    </p>
+                    <p class="text-xs text-green-600 mt-1">
+                        Notificaciones enviadas a los receptores
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        agregarNotificacionDOM(div);
+    }
+
+    // 🔔 FUNCIÓN PARA MOSTRAR ALERTA DETALLADA AL RECEPTOR
+    function mostrarAlertaReceptor(pedido) {
         const div = document.createElement("div");
         div.classList.add(
             'notification-item',
@@ -79,8 +126,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         
+        agregarNotificacionDOM(div);
+    }
+
+    // 📦 FUNCIÓN AUXILIAR PARA AGREGAR NOTIFICACIÓN AL DOM
+    function agregarNotificacionDOM(div) {
         const contenedor = document.getElementById('notificaciones');
+        const emptyState = document.getElementById('emptyState');
+        
         if (contenedor) {
+            // Ocultar estado vacío
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
             contenedor.prepend(div);
             
             // Animar entrada
@@ -111,14 +170,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 spanContador.classList.remove('scale-150', 'text-red-500');
             }, 300);
         }
+
+        // 🔔 Actualizar el badge en el header (navegación)
+        if (typeof window.updateNotificationBadge === 'function') {
+            window.updateNotificationBadge(contadorNotificaciones);
+        }
     }
 
-    // Inicializar Echo
+    // 🎯 INICIALIZAR ECHO Y DISCRIMINAR ENTRE CREADOR Y RECEPTOR
     if (userId) {
         window.Echo.private(`user.${userId}`)
             .listen('PedidoCreado', (e) => {
                 console.log("📦 Notificación recibida:", e);
-                mostrarNotificacion(e.pedido);
+                console.log("👤 Usuario actual ID:", userId);
+                console.log("👤 Creador del pedido ID:", e.creadorId);
+                
+                // 🔍 VERIFICAR SI EL USUARIO ACTUAL ES EL CREADOR
+                if (parseInt(e.creadorId) === userId) {
+                    console.log("✅ Soy el CREADOR - Mostrando confirmación");
+                    mostrarConfirmacionCreador(e.pedido);
+                } else {
+                    console.log("🔔 Soy un RECEPTOR - Mostrando alerta detallada");
+                    mostrarAlertaReceptor(e.pedido);
+                }
             });
         console.log(`✅ Escuchando canal privado: user.${userId}`);
     } else {
@@ -130,11 +204,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnCrearPedido) {
         btnCrearPedido.addEventListener('click', async () => {
             try {
+                // Deshabilitar botón temporalmente
+                btnCrearPedido.disabled = true;
+                const textoOriginal = btnCrearPedido.innerHTML;
+                btnCrearPedido.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creando...';
+                
                 const res = await fetch('/crear-pedido');
-                const text = await res.text();
-                console.log(text);
+                const data = await res.json();
+                console.log("Respuesta del servidor:", data);
+                
+                // Restaurar botón
+                setTimeout(() => {
+                    btnCrearPedido.disabled = false;
+                    btnCrearPedido.innerHTML = textoOriginal;
+                }, 2000);
+                
             } catch (err) {
                 console.error("Error al crear pedido:", err);
+                btnCrearPedido.disabled = false;
             }
         });
     }
